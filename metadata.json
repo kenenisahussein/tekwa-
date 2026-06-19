@@ -1,0 +1,6 @@
+{
+  "name": "Taqwa Digital Menu",
+  "description": "A modern, beautiful, and fully functional bilingual (English/Arabic) digital menu for Taqwa Restaurant with an elegant admin dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
