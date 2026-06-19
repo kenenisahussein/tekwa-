@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { AppState, Product, Category, HeroConfig, RestaurantConfig } from "./types";
 import { translations, Language } from "./utils/translations";
+import { defaultAppState } from "./utils/fallbackState";
 import Header from "./components/Header";
 import Hero from "./components/Hero";
 import Footer from "./components/Footer";
@@ -98,9 +99,15 @@ export default function App() {
         if (data.categories && data.categories.length > 0) {
           setProductForm((prev) => ({ ...prev, categoryId: data.categories[0].id }));
         }
+      } else {
+        throw new Error("Local backend not available");
       }
     } catch (e) {
-      console.error("Error communicating with dynamic express server:", e);
+      console.warn("Express server not detected (e.g. static host like Vercel). Using pre-loaded premium offline dataset successfully:", e);
+      setAppState(defaultAppState);
+      if (defaultAppState.categories && defaultAppState.categories.length > 0) {
+        setProductForm((prev) => ({ ...prev, categoryId: defaultAppState.categories[0].id }));
+      }
     } finally {
       setLoading(false);
     }
@@ -697,10 +704,10 @@ export default function App() {
                     
                     <div className="flex items-center gap-3 pt-6 border-t border-gray-200/40 mt-6 font-sans">
                       <div className="w-10 h-10 rounded-full bg-primary-700 text-white font-serif font-bold text-sm flex items-center justify-center">
-                        HM
+                        IM
                       </div>
                       <div>
-                        <span className="block text-xs font-bold uppercase tracking-wider text-primary-950">Dr. Henok Mulatu</span>
+                        <span className="block text-xs font-bold uppercase tracking-wider text-primary-950">Dr. Ibrahim Al-Mansoor</span>
                         <span className="text-[10px] text-gray-400">Verified Local Guide • Shashemene</span>
                       </div>
                     </div>
