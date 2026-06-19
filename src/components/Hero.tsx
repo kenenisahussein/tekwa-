@@ -74,22 +74,19 @@ export default function Hero({ hero, lang, onExploreClick }: HeroProps) {
           return (
             <div
               key={idx}
-              className={`absolute inset-0 transition-opacity duration-[2000s] ease-in-out ${
-                isActive ? "opacity-55 scale-105" : "opacity-0 scale-100"
+              className={`absolute inset-0 transition-all duration-1000 ease-in-out ${
+                isActive ? "opacity-80 scale-100" : "opacity-0 scale-95"
               }`}
               style={{
                 backgroundImage: `url(${img})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
-                transitionProperty: "opacity, transform",
-                transitionDuration: "2500ms",
               }}
             />
           );
         })}
-        {/* Multilayered radial and linear dark overlays for extreme readability and high visual contrast */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#faf9f6] via-[#141210]/60 to-[#141210]/80 z-10" />
-        <div className="absolute inset-0 bg-radial-gradient from-transparent to-[#141210]/95 opacity-80 z-10" />
+        {/* Multilayered radial and linear dark overlays for readability and premium look */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#141210] via-[#141210]/40 to-[#141211]/50 z-10" />
       </div>
 
       {/* Hero Content Container */}

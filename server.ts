@@ -175,9 +175,9 @@ const defaultState: AppState = {
     subtitleOm: "Magaalaa bareeddii Shashamanee keessatti dhandhama nyaata addaa fi keessummeessaa mi'aawaa fidaa. Nyaatni keenya hunduu jaalalaan qophaaye.",
     subtitleAm: "በውቧ ሻሸመኔ ከተማ ውስጥ የምግብ አዘገጃጀት ጥበብንና ባህላዊ ጣዕምን ያጣጥሙ። እያንዳንዱ ምግብ በፍቅርና በጥንቃቄ የተዘጋጀ ነው።",
     images: [
-      "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1600&auto=format&fit=crop&q=90",
-      "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=1600&auto=format&fit=crop&q=90",
-      "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1600&auto=format&fit=crop&q=90"
+      "https://images.unsplash.com/photo-1542810634-71277d95dcbb?w=1600",
+      "https://images.unsplash.com/photo-1590075865003-e48277faa558?w=1600",
+      "https://images.unsplash.com/photo-1519817650390-64a93db51149?w=1600"
     ]
   },
   restaurant: {
@@ -222,6 +222,127 @@ function loadDatabase(): AppState {
         parsedData.restaurant.openingHoursOm = defaultState.restaurant.openingHoursOm;
         parsedData.restaurant.openingHoursAm = defaultState.restaurant.openingHoursAm;
       }
+
+      // Ensure soft drinks, rice, special mandi, and other foods are imported dynamically
+      if (!parsedData.categories) parsedData.categories = [];
+      if (!parsedData.products) parsedData.products = [];
+
+      const targetCats = [
+        {
+          id: "soft-drinks",
+          nameEn: "Soft Drinks",
+          nameAr: "المشروبات الغازية والباردة",
+          nameOm: "Dhugaatii Lallaafaa",
+          nameAm: "ለስላሳ መጠጦች",
+          icon: "TrendingUp"
+        },
+        {
+          id: "rice",
+          nameEn: "Aromatic Rice",
+          nameAr: "أطباق الأرز العطرة",
+          nameOm: "Nyaata Ruuzii",
+          nameAm: "የሩዝ ምግቦች",
+          icon: "Columns"
+        },
+        {
+          id: "special-mandi",
+          nameEn: "Special Mandi",
+          nameAr: "المندي الخاص المتميز",
+          nameOm: "Mandi Addaa",
+          nameAm: "ልዩ ማንዲ",
+          icon: "Award"
+        },
+        {
+          id: "other-foods",
+          nameEn: "Other Foods",
+          nameAr: "مأكولات متنوعة أخرى",
+          nameOm: "Nyaatawwan Biroo",
+          nameAm: "ሌሎች ምግቦች",
+          icon: "Layers"
+        }
+      ];
+
+      targetCats.forEach(tc => {
+        if (!parsedData.categories.some((c: any) => c.id === tc.id)) {
+          parsedData.categories.push(tc);
+        }
+      });
+
+      const targetProds = [
+        {
+          id: "prod-sd-1",
+          nameEn: "Premium Hibiscus Cool",
+          nameAr: "عصير الكركديه المنعش والبارد",
+          nameOm: "Hibiscus Cool",
+          nameAm: "ልዩ የከርከዴ መጠጥ",
+          descriptionEn: "Infused with organic wild berries, fresh hand-picked mint leaves, and sweet lime.",
+          descriptionAr: "مغمر بنكهة التوت البري العضوي، وأوراق النعناع الطازجة المنتقاة وبلمسة ليمون حلوة.",
+          descriptionOm: "Dhugaatii qabbaneessaa hibiscus berris fi mintii haaraa irraa qophaaye.",
+          descriptionAm: "ከበረዶ፣ ከፓሽን ፍሩትና ከልዩ ቅጠላ ቅጠል ጋር ተዋህዶ ቀዝቃዛ የሚቀርብ ተወዳጅ የከርከዴ መጠጥ።",
+          price: 180,
+          categoryId: "soft-drinks",
+          image: "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=800",
+          isAvailable: true,
+          isFeatured: true
+        },
+        {
+          id: "prod-rc-1",
+          nameEn: "Saffron Royal Biryani",
+          nameAr: "أرز برياني الزعفران الملكي",
+          nameOm: "Ruuzii Biryaanii",
+          nameAm: "የሳፍሮን ሮያል ቢሪያኒ",
+          descriptionEn: "Premium saffron-infused long grain Basmati steamed with fresh cardamoms, cinnamon barks and cloves.",
+          descriptionAr: "أرز بسمتي فاخر طويل الحبة بنكهة الزعفران، مطهو ببطء مع الهيل الطازج وعيدان القرفة والقرنفل العطري.",
+          descriptionOm: "Basmatii safroonii fi mi'eessituuwwan aadaa kootiin bilchaate.",
+          descriptionAm: "በሚያምር መዓዛና በቅመማ ቅመም የተቀመመ፣ ከሳፍሮን ጋር ተቀላቅሎ የሚዘጋጅ የላቀ ረዥም የሩዝ ምግብ።",
+          price: 950,
+          categoryId: "rice",
+          image: "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=800",
+          isAvailable: true,
+          isFeatured: true
+        },
+        {
+          id: "prod-sm-1",
+          nameEn: "Signature Taqwa Family Mandi",
+          nameAr: "مندي عائلي فاخر خاص",
+          nameOm: "Taqwa Maatii Mandi",
+          nameAm: "የተቅዋ ልዩ የቤተሰብ ማንዲ",
+          descriptionEn: "Feast of smoke-baked seasoned rice served with a massive double shoulder of fork-tender lamb, flame roasted nuts, and hot salsa dip.",
+          descriptionAr: "وليمة فاخرة من أرز المندي المدخن المطبوخ برعاية، تقدم مع كتف مزدوج ضخم لحم ضأن شديد الليونة ومزين بالمكسرات المحمصة وصلصة حارة.",
+          descriptionOm: "Mandi guddaa foon hoolaa baay'ee lallaafaa, maatii guutuuf kan dhiyaatu.",
+          descriptionAm: "ለትልቅ ቤተሰብ ወይም ግብዣ የሚሆን፣ እጅግ በጣም በሚያምር ሁኔታ የተጠበሰ የበግ ስጋና የላቀ የቁም ማንዲ።",
+          price: 3800,
+          categoryId: "special-mandi",
+          image: "https://images.unsplash.com/photo-1544025162-d76694265947?w=800",
+          isAvailable: true,
+          isFeatured: true
+        },
+        {
+          id: "prod-of-1",
+          nameEn: "Charred Flame-Grilled Lamb Ribs",
+          nameAr: "أضلاع لحم ضأن مشوية على الفحم",
+          nameOm: "Ribs Lamb Grilled",
+          nameAm: "የበግ ጎድን ጥብስ",
+          descriptionEn: "Succulent free-range lamb ribs marinated in wild mountain honey and aromatic rosemary, charred on open embers.",
+          descriptionAr: "أضلاع ضأن مشوية متبلة بعسل الجبل البري وإكليل الجبل العطري، مطهوة على الفحم المتوهج بتجانس تام.",
+          descriptionOm: "Ribs hoolaa mimmigaa fi damma gaaraatiin gilaalame.",
+          descriptionAm: "በማርና በሮዝመሪ ቅጠል የተቀመመ፣ በእሳት ነበልባል ላይ በልዩ ጥበብ የተጠበሰ ጣፋጭ የበግ ጎድን።",
+          price: 1550,
+          categoryId: "other-foods",
+          image: "https://images.unsplash.com/photo-1544025162-d76694265947?w=800",
+          isAvailable: true,
+          isFeatured: true
+        }
+      ];
+
+      targetProds.forEach(tc => {
+        if (!parsedData.products.some((p: any) => p.id === tc.id)) {
+          parsedData.products.push(tc);
+        }
+      });
+
+      // Save updated data to persist these changes
+      fs.writeFileSync(DB_FILE, JSON.stringify(parsedData, null, 2), "utf-8");
       return parsedData;
     } else {
       fs.writeFileSync(DB_FILE, JSON.stringify(defaultState, null, 2), "utf-8");
@@ -252,12 +373,21 @@ async function start() {
   // Authenticate Admin Passcode strictly
   const verifyAdmin = (req: express.Request, res: express.Response, next: express.NextFunction) => {
     const passcode = req.headers["x-admin-passcode"] || req.query.passcode;
-    if (passcode === "taqwa") {
+    if (passcode === "abbas9520") {
       return next();
     }
     console.warn(`[UNAUTHORIZED ACCESS] Attempt to update data without valid passcode from ${req.ip}`);
     return res.status(403).json({ error: "Access denied. Invalid signature passcode credentials." });
   };
+
+  // API 0: Verify Administrative Passcode (Server-Verified)
+  app.post("/api/admin/verify", (req, res) => {
+    const { passcode } = req.body;
+    if (passcode === "abbas9520") {
+      return res.status(200).json({ success: true, message: "Valid passcode" });
+    }
+    return res.status(401).json({ success: false, error: "Invalid administrative credentials" });
+  });
 
   // API 1: Fetch overall state (Public)
   app.get("/api/state", (req, res) => {
@@ -354,14 +484,14 @@ async function start() {
   // API 7: Add a Category (Secured)
   app.post("/api/categories", verifyAdmin, (req, res) => {
     const cat: Partial<Category> = req.body;
-    if (!cat.nameEn || !cat.nameAr) {
-      return res.status(400).json({ error: "nameEn and nameAr are required for a category" });
+    if (!cat.nameEn) {
+      return res.status(400).json({ error: "nameEn is required for a category" });
     }
     const slug = cat.nameEn.toLowerCase().replace(/[^a-z0-9]+/g, "-");
     const newCategory: Category = {
       id: slug || "cat-" + Date.now(),
       nameEn: cat.nameEn,
-      nameAr: cat.nameAr,
+      nameAr: cat.nameAr || cat.nameEn,
       nameOm: cat.nameOm || cat.nameEn,
       nameAm: cat.nameAm || cat.nameEn,
       icon: cat.icon || "Utensils"

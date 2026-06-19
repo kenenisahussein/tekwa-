@@ -209,14 +209,23 @@ export default function App() {
   }, [appState]);
 
   // Unlock Admin dashboard
-  const handleUnlockAdmin = (e: React.FormEvent) => {
+  const handleUnlockAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (adminPasscode.toLowerCase() === "taqwa") {
-      setIsAdminUnlocked(true);
-      setPasscodeError("");
-      showToast(lang === "en" ? "Welcome to Taqwa Sanctuary Panel" : "مرحباً بك في لوحة تحكم تقوى");
-    } else {
-      setPasscodeError(t.invalidPasscode);
+    try {
+      const resp = await fetch("/api/admin/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ passcode: adminPasscode })
+      });
+      if (resp.ok) {
+        setIsAdminUnlocked(true);
+        setPasscodeError("");
+        showToast(lang === "en" ? "Welcome to Taqwa Sanctuary Panel" : "مرحباً بك في لوحة تحكم تقوى");
+      } else {
+        setPasscodeError(t.invalidPasscode);
+      }
+    } catch (err) {
+      setPasscodeError("Could not authenticate. Connection issue.");
     }
   };
 
@@ -234,7 +243,7 @@ export default function App() {
         method,
         headers: { 
           "Content-Type": "application/json",
-          "x-admin-passcode": "taqwa" 
+          "x-admin-passcode": adminPasscode 
         },
         body: JSON.stringify(productForm),
       });
@@ -276,7 +285,7 @@ export default function App() {
     try {
       const resp = await fetch(`/api/products/${id}`, { 
         method: "DELETE",
-        headers: { "x-admin-passcode": "taqwa" }
+        headers: { "x-admin-passcode": adminPasscode }
       });
       if (resp.ok) {
         showToast(t.adminDeleteSuccess);
@@ -299,7 +308,7 @@ export default function App() {
         method,
         headers: { 
           "Content-Type": "application/json",
-          "x-admin-passcode": "taqwa" 
+          "x-admin-passcode": adminPasscode 
         },
         body: JSON.stringify(categoryForm),
       });
@@ -322,7 +331,7 @@ export default function App() {
     try {
       const resp = await fetch(`/api/categories/${id}`, { 
         method: "DELETE",
-        headers: { "x-admin-passcode": "taqwa" }
+        headers: { "x-admin-passcode": adminPasscode }
       });
       if (resp.ok) {
         showToast(t.adminDeleteSuccess);
@@ -380,7 +389,7 @@ export default function App() {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "x-admin-passcode": "taqwa" 
+          "x-admin-passcode": adminPasscode 
         },
         body: JSON.stringify(heroForm),
       });
@@ -400,7 +409,7 @@ export default function App() {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "x-admin-passcode": "taqwa" 
+          "x-admin-passcode": adminPasscode 
         },
         body: JSON.stringify(restaurantForm),
       });
@@ -593,6 +602,160 @@ export default function App() {
                     <span>{t.viewFullMenu}</span>
                     <ArrowRight className="h-4 w-4" />
                   </button>
+                </div>
+              </div>
+            </section>
+
+            {/* NEW SECTION 1: THE CULINARY ART OF SLOW SMOKE (Appetite Stimulating) */}
+            <section id="sensory-gastronomy-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 overflow-hidden">
+              <div className="bg-[#141210] rounded-[3rem] p-8 md:p-16 text-white relative shadow-2xl border border-amber-500/10 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl -z-10" />
+                
+                <div className="lg:col-span-6 space-y-8">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-xs font-bold uppercase tracking-widest">
+                    <span>The Hot Hearth Experience</span>
+                  </div>
+                  
+                  <h3 className="font-serif text-3xl sm:text-5xl font-bold leading-tight">
+                    The Crackle of Hardy Timber, <br />
+                    <span className="text-amber-400">The Secret Seasoning.</span>
+                  </h3>
+                  
+                  <p className="text-gray-300 text-base sm:text-lg leading-relaxed font-sans">
+                    Step inside our sanctuary in Shashemene, and watch as our pitmasters slow-tend succulent meats over natural hardwoods for up to twelve hours. Rich steam rises, locking in pure juices and wrapping each tender brisket or whole lamb in the velvety embrace of ancient cardamoms, dynamic clove, and local mountain gold honey. 
+                  </p>
+                  
+                  <div className="grid grid-cols-2 gap-4 pt-4">
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+                      <span className="block text-2xl font-serif font-bold text-amber-400">12 hrs</span>
+                      <span className="text-xs text-gray-400">Hardwood Slow Roast</span>
+                    </div>
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+                      <span className="block text-2xl font-serif font-bold text-amber-400">100%</span>
+                      <span className="text-xs text-gray-400">Hand-selected Spices</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-4">
+                    <button
+                      onClick={() => setCurrentTab("menu")}
+                      className="px-8 py-4 rounded-full bg-amber-500 hover:bg-amber-400 text-primary-950 font-extrabold transition-all duration-300 hover:scale-105 inline-flex items-center gap-2"
+                    >
+                      <span>Satisfy Your Cravings</span>
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Engaging rich collage/artwork overlay */}
+                <div className="lg:col-span-6 relative h-64 sm:h-96 rounded-2xl overflow-hidden shadow-2xl border border-white/10">
+                  <img
+                    src="https://images.unsplash.com/photo-1544025162-d76694265947?w=1000"
+                    className="absolute inset-0 w-full h-full object-cover brightness-95 contrast-105 hover:scale-105 transition-transform duration-[3s]"
+                    alt="Smoked succulent cooked meat and rice platter"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#141210] via-transparent to-[#141210]/20" />
+                  <div className="absolute bottom-6 left-6 right-6 p-6 rounded-2xl bg-[#141210]/70 backdrop-blur-md border border-white/10">
+                    <span className="text-amber-400 text-xs font-bold uppercase tracking-wider block mb-1">Diner's favorite</span>
+                    <p className="text-white font-serif text-lg font-semibold">Taqwa Royale Mandi Platter</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* NEW SECTION 2: LUXURIOUS 1-BILLION-DOLLAR FEEDBACK WALL OF CRITIQUES */}
+            <section id="feedback-critiques-section" className="bg-white border-y border-gray-100 py-24">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
+                <div className="text-center space-y-4">
+                  <span className="text-xs font-bold uppercase tracking-widest text-[#a8a69e] block">
+                    Stories of Gastronomy & Pride
+                  </span>
+                  <h3 className="font-serif text-3xl sm:text-5xl font-bold text-primary-950">
+                    Whispers of Gratitude
+                  </h3>
+                  <p className="text-gray-500 max-w-2xl mx-auto text-sm sm:text-base">
+                    Discover why food writers, families, and high-end travelers choose Taqwa as their destination of choice in Shashemene.
+                  </p>
+                  <div className="h-1 w-24 bg-amber-500 mx-auto rounded-full" />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  
+                  {/* Testimonial card 1 */}
+                  <div className="bg-[#faf9f6]/90 border border-gray-200/60 p-8 rounded-[2rem] shadow-lg flex flex-col justify-between hover:shadow-2xl transition-all hover:-translate-y-1 duration-300">
+                    <div className="space-y-4">
+                      {/* Gold stars */}
+                      <div className="flex gap-1 text-[#f59e0b]">
+                        {"★★★★★".split("").map((str, i) => (
+                          <span key={i} className="text-lg">★</span>
+                        ))}
+                      </div>
+                      <p className="text-gray-700 italic font-medium leading-relaxed">
+                        "The Taqwa Royale Mandi is an spiritual experience. The seasoned lamb literally fell off the bone the moment our fork touched it. Shashemene finally has a true crown jewel of gastronomy!"
+                      </p>
+                    </div>
+                    
+                    <div className="flex items-center gap-3 pt-6 border-t border-gray-200/40 mt-6 font-sans">
+                      <div className="w-10 h-10 rounded-full bg-primary-700 text-white font-serif font-bold text-sm flex items-center justify-center">
+                        HM
+                      </div>
+                      <div>
+                        <span className="block text-xs font-bold uppercase tracking-wider text-primary-950">Dr. Henok Mulatu</span>
+                        <span className="text-[10px] text-gray-400">Verified Local Guide • Shashemene</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Testimonial card 2 */}
+                  <div className="bg-[#faf9f6]/90 border border-gray-200/60 p-8 rounded-[2rem] shadow-lg flex flex-col justify-between hover:shadow-2xl transition-all hover:-translate-y-1 duration-300">
+                    <div className="space-y-4">
+                      {/* Gold stars */}
+                      <div className="flex gap-1 text-[#f59e0b]">
+                        {"★★★★★".split("").map((str, i) => (
+                          <span key={i} className="text-lg">★</span>
+                        ))}
+                      </div>
+                      <p className="text-gray-700 italic font-medium leading-relaxed">
+                        "Unbelievable depth of spices. The saffron long-grain basmati is steam-cooked with cardamom to absolute, separate perfection. Incredible five-star service that feels like coming home."
+                      </p>
+                    </div>
+                    
+                    <div className="flex items-center gap-3 pt-6 border-t border-[#1c1a17]/10 mt-6 font-sans">
+                      <div className="w-10 h-10 rounded-full bg-amber-500 text-primary-950 font-serif font-bold text-sm flex items-center justify-center">
+                        FA
+                      </div>
+                      <div>
+                        <span className="block text-xs font-bold uppercase tracking-wider text-primary-950">Fatima Ahmedollah</span>
+                        <span className="text-[10px] text-gray-400">Premium Food Blogger • Addis Ababa</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Testimonial card 3 */}
+                  <div className="bg-[#faf9f6]/90 border border-gray-200/60 p-8 rounded-[2rem] shadow-lg flex flex-col justify-between hover:shadow-2xl transition-all hover:-translate-y-1 duration-300">
+                    <div className="space-y-4">
+                      {/* Gold stars */}
+                      <div className="flex gap-1 text-[#f59e0b]">
+                        {"★★★★★".split("").map((str, i) => (
+                          <span key={i} className="text-lg">★</span>
+                        ))}
+                      </div>
+                      <p className="text-gray-700 italic font-medium leading-relaxed">
+                        "Every single dish has a story written in embers. The honey-steeped Baklava Royale is so delicious, crunchy, and richly nutty. Highly recommend visiting Taqwa on any weekend trip!"
+                      </p>
+                    </div>
+                    
+                    <div className="flex items-center gap-3 pt-6 border-t border-gray-200/40 mt-6 font-sans">
+                      <div className="w-10 h-10 rounded-full bg-emerald-700 text-white font-serif font-bold text-sm flex items-center justify-center">
+                        AK
+                      </div>
+                      <div>
+                        <span className="block text-xs font-bold uppercase tracking-wider text-primary-950">Ato Abdi Kassim</span>
+                        <span className="text-[10px] text-gray-400">Gourmet Critic • Shashemene</span>
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
               </div>
             </section>
