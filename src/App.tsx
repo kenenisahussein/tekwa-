@@ -33,6 +33,8 @@ import {
 import { AppState, Product, Category, HeroConfig, RestaurantConfig } from "./types";
 import { translations, Language } from "./utils/translations";
 import { defaultAppState } from "./utils/fallbackState";
+import { doc, onSnapshot, setDoc } from "firebase/firestore";
+import { db } from "./lib/firebase";
 import Header from "./components/Header";
 import Hero from "./components/Hero";
 import Footer from "./components/Footer";
@@ -95,6 +97,7 @@ export default function App() {
       if (response.ok) {
         const data: AppState = await response.json();
         setAppState(data);
+        localStorage.setItem("taqwa_custom_state", JSON.stringify(data));
         // Default category first match
         if (data.categories && data.categories.length > 0) {
           setProductForm((prev) => ({ ...prev, categoryId: data.categories[0].id }));
@@ -103,7 +106,21 @@ export default function App() {
         throw new Error("Local backend not available");
       }
     } catch (e) {
-      console.warn("Express server not detected (e.g. static host like Vercel). Using pre-loaded premium offline dataset successfully:", e);
+      console.warn("Express server not detected. Checking local storage fallback...", e);
+      const cached = localStorage.getItem("taqwa_custom_state");
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (parsed && typeof parsed === "object" && Array.isArray(parsed.categories) && Array.isArray(parsed.products)) {
+            setAppState(parsed);
+            if (parsed.categories.length > 0) {
+              setProductForm((prev) => ({ ...prev, categoryId: parsed.categories[0].id }));
+            }
+            setLoading(false);
+            return;
+          }
+        } catch (_) {}
+      }
       setAppState(defaultAppState);
       if (defaultAppState.categories && defaultAppState.categories.length > 0) {
         setProductForm((prev) => ({ ...prev, categoryId: defaultAppState.categories[0].id }));
@@ -113,8 +130,38 @@ export default function App() {
     }
   };
 
+  const saveAndApplyState = async (newState: AppState) => {
+    setAppState(newState);
+    localStorage.setItem("taqwa_custom_state", JSON.stringify(newState));
+    try {
+      await setDoc(doc(db, "restaurant_state", "taqwa"), newState);
+    } catch (err) {
+      console.error("Failed to sync state to Firebase Firestore database:", err);
+    }
+  };
+
   useEffect(() => {
-    fetchStateFromServer();
+    // Connect to Firestore real-time snapshot listeners for fully synchronized direct state updates
+    const unsubscribe = onSnapshot(doc(db, "restaurant_state", "taqwa"), async (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data() as AppState;
+        setAppState(data);
+        localStorage.setItem("taqwa_custom_state", JSON.stringify(data));
+        setLoading(false);
+      } else {
+        // Automatically seed with default/fallback data if Firestore doc is missing
+        console.log("No existing menu dataset on secure Firebase cluster. Seeding now...");
+        try {
+          await setDoc(doc(db, "restaurant_state", "taqwa"), defaultAppState);
+        } catch (err) {
+          console.error("Firestore seeding failed; running local server fallback:", err);
+          fetchStateFromServer();
+        }
+      }
+    }, (error) => {
+      console.warn("Firestore remote listener blocked or unavailable. Syncing via server fallback:", error);
+      fetchStateFromServer();
+    });
 
     // Secure Admin Entrance: Check multiple entries for solid routing on static Vercel hosts
     const path = window.location.pathname.toLowerCase();
@@ -140,7 +187,10 @@ export default function App() {
       setSplashFinished(true);
     }, 2000);
 
-    return () => clearTimeout(timer);
+    return () => {
+      unsubscribe();
+      clearTimeout(timer);
+    };
   }, []);
 
   const t = translations[lang];
@@ -287,6 +337,42 @@ export default function App() {
     if (!appState) return;
 
     const isEdit = !!editingProduct;
+    let updatedProducts = [...appState.products];
+    const targetId = editingProduct ? editingProduct.id : `prod-${Date.now()}`;
+
+    const newProductData: Product = {
+      id: targetId,
+      nameEn: productForm.nameEn || "",
+      nameAr: productForm.nameAr || "",
+      nameOm: productForm.nameOm || "",
+      nameAm: productForm.nameAm || "",
+      descriptionEn: productForm.descriptionEn || "",
+      descriptionAr: productForm.descriptionAr || "",
+      descriptionOm: productForm.descriptionOm || "",
+      descriptionAm: productForm.descriptionAm || "",
+      price: Number(productForm.price) || 0,
+      categoryId: productForm.categoryId || "",
+      image: productForm.image || "",
+      isAvailable: productForm.isAvailable !== undefined ? productForm.isAvailable : true,
+      isFeatured: productForm.isFeatured !== undefined ? productForm.isFeatured : false,
+    };
+
+    if (isEdit && editingProduct) {
+      updatedProducts = updatedProducts.map((p) =>
+        p.id === editingProduct.id ? newProductData : p
+      );
+    } else {
+      updatedProducts.push(newProductData);
+    }
+
+    const newState: AppState = {
+      ...appState,
+      products: updatedProducts
+    };
+
+    // Real-time local state update & persistence for offline/Vercel support
+    await saveAndApplyState(newState);
+
     const url = isEdit ? `/api/products/${editingProduct.id}` : "/api/products";
     const method = isEdit ? "PUT" : "POST";
 
@@ -297,61 +383,94 @@ export default function App() {
           "Content-Type": "application/json",
           "x-admin-passcode": adminPasscode 
         },
-        body: JSON.stringify(productForm),
+        body: JSON.stringify(isEdit ? productForm : newProductData),
       });
 
       if (resp.ok) {
-        showToast(t.updateProductSuccess);
-        setIsProductModalOpen(false);
-        setEditingProduct(null);
-        // Reset product fields
-        setProductForm({
-          nameEn: "",
-          nameAr: "",
-          nameOm: "",
-          nameAm: "",
-          descriptionEn: "",
-          descriptionAr: "",
-          descriptionOm: "",
-          descriptionAm: "",
-          price: 0,
-          categoryId: appState.categories[0]?.id || "",
-          image: "",
-          isAvailable: true,
-          isFeatured: false,
-        });
+        // Live server succeeded, let's refresh full server-side integrity state (if active)
         await fetchStateFromServer();
-      } else {
-        const errorData = await resp.json();
-        showToast(errorData.error || "Execution failed");
       }
     } catch (err) {
-      console.error(err);
-      showToast("Server connection error.");
+      console.warn("Express endpoint failed (expected on static Vercel hosts). Preserved locally in real-time:", err);
     }
+
+    showToast(t.updateProductSuccess);
+    setIsProductModalOpen(false);
+    setEditingProduct(null);
+    setProductForm({
+      nameEn: "",
+      nameAr: "",
+      nameOm: "",
+      nameAm: "",
+      descriptionEn: "",
+      descriptionAr: "",
+      descriptionOm: "",
+      descriptionAm: "",
+      price: 0,
+      categoryId: newState.categories[0]?.id || "",
+      image: "",
+      isAvailable: true,
+      isFeatured: false,
+    });
   };
 
   // Delete Product
   const handleDeleteProduct = async (id: string) => {
     if (!window.confirm(t.deleteProductConfirm)) return;
+    if (!appState) return;
+
+    const updatedProducts = appState.products.filter((p) => p.id !== id);
+    const newState: AppState = {
+      ...appState,
+      products: updatedProducts
+    };
+
+    await saveAndApplyState(newState);
+
     try {
-      const resp = await fetch(`/api/products/${id}`, { 
+      await fetch(`/api/products/${id}`, { 
         method: "DELETE",
         headers: { "x-admin-passcode": adminPasscode }
       });
-      if (resp.ok) {
-        showToast(t.adminDeleteSuccess);
-        await fetchStateFromServer();
-      }
     } catch (e) {
-      showToast("Server error.");
+      console.warn("Express endpoint failed (expected on static Vercel hosts). Deleted locally in real-time:", e);
     }
+    showToast(t.adminDeleteSuccess);
   };
 
   // Create or Update Category handler
   const handleCategorySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!appState) return;
+
     const isEdit = !!editingCategory;
+    let updatedCategories = [...appState.categories];
+    const targetId = editingCategory ? editingCategory.id : `cat-${Date.now()}`;
+
+    const newCategoryData: Category = {
+      id: targetId,
+      nameEn: categoryForm.nameEn || "",
+      nameAr: categoryForm.nameAr || "",
+      nameOm: categoryForm.nameOm || "",
+      nameAm: categoryForm.nameAm || "",
+      icon: categoryForm.icon || "Utensils",
+    };
+
+    if (isEdit && editingCategory) {
+      updatedCategories = updatedCategories.map((c) =>
+        c.id === editingCategory.id ? newCategoryData : c
+      );
+    } else {
+      updatedCategories.push(newCategoryData);
+    }
+
+    const newState: AppState = {
+      ...appState,
+      categories: updatedCategories
+    };
+
+    await saveAndApplyState(newState);
+
     const url = isEdit ? `/api/categories/${editingCategory.id}` : "/api/categories";
     const method = isEdit ? "PUT" : "POST";
 
@@ -362,36 +481,44 @@ export default function App() {
           "Content-Type": "application/json",
           "x-admin-passcode": adminPasscode 
         },
-        body: JSON.stringify(categoryForm),
+        body: JSON.stringify(isEdit ? categoryForm : newCategoryData),
       });
 
       if (resp.ok) {
-        showToast(t.adminAddCategorySuccess);
-        setIsCategoryModalOpen(false);
-        setEditingCategory(null);
-        setCategoryForm({ nameEn: "", nameAr: "", nameOm: "", nameAm: "", icon: "Utensils" });
         await fetchStateFromServer();
       }
     } catch (err) {
-      showToast("Failed to process category updates.");
+      console.warn("Express endpoint failed (expected on static Vercel hosts). Preserved locally in real-time:", err);
     }
+
+    showToast(t.adminAddCategorySuccess);
+    setIsCategoryModalOpen(false);
+    setEditingCategory(null);
+    setCategoryForm({ nameEn: "", nameAr: "", nameOm: "", nameAm: "", icon: "Utensils" });
   };
 
   // Delete Category
   const handleDeleteCategory = async (id: string) => {
     if (!window.confirm(t.deleteCategoryConfirm)) return;
+    if (!appState) return;
+
+    const updatedCategories = appState.categories.filter((c) => c.id !== id);
+    const newState: AppState = {
+      ...appState,
+      categories: updatedCategories
+    };
+
+    await saveAndApplyState(newState);
+
     try {
-      const resp = await fetch(`/api/categories/${id}`, { 
+      await fetch(`/api/categories/${id}`, { 
         method: "DELETE",
         headers: { "x-admin-passcode": adminPasscode }
       });
-      if (resp.ok) {
-        showToast(t.adminDeleteSuccess);
-        await fetchStateFromServer();
-      }
     } catch (e) {
-      showToast("Failed to proceed.");
+      console.warn("Express endpoint failed (expected on static Vercel). Deleted locally in real-time:", e);
     }
+    showToast(t.adminDeleteSuccess);
   };
 
   // Modify Hero Section dynamically
@@ -436,6 +563,15 @@ export default function App() {
 
   const handleHeroUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!appState) return;
+
+    const newState: AppState = {
+      ...appState,
+      hero: heroForm
+    };
+
+    await saveAndApplyState(newState);
+
     try {
       const resp = await fetch("/api/hero", {
         method: "POST",
@@ -446,16 +582,25 @@ export default function App() {
         body: JSON.stringify(heroForm),
       });
       if (resp.ok) {
-        showToast(t.updateHeroSuccess);
         await fetchStateFromServer();
       }
     } catch (err) {
-      showToast("Error updating hero content.");
+      console.warn("Express endpoint failed (expected on static Vercel). Updated locally in real-time:", err);
     }
+    showToast(t.updateHeroSuccess);
   };
 
   const handleRestaurantUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!appState) return;
+
+    const newState: AppState = {
+      ...appState,
+      restaurant: restaurantForm
+    };
+
+    await saveAndApplyState(newState);
+
     try {
       const resp = await fetch("/api/restaurant", {
         method: "POST",
@@ -466,12 +611,12 @@ export default function App() {
         body: JSON.stringify(restaurantForm),
       });
       if (resp.ok) {
-        showToast(lang === "en" ? "Restaurant Info Updated!" : "تم تحديث معلومات المطعم!");
         await fetchStateFromServer();
       }
     } catch (err) {
-      showToast("Error.");
+      console.warn("Express endpoint failed (expected on static Vercel). Updated locally in real-time:", err);
     }
+    showToast(lang === "en" ? "Restaurant Info Updated!" : "تم تحديث معلومات المطعم!");
   };
 
   const dir = lang === "ar" ? "rtl" : "ltr";
