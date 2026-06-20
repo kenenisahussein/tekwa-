@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   Utensils,
   Search,
@@ -621,63 +622,81 @@ export default function App() {
 
   const dir = lang === "ar" ? "rtl" : "ltr";
 
-  // Render initial loading and splash screen
-  if (!splashFinished || loading || !appState) {
-    return (
-      <div 
-        id="splash-loader" 
-        className="fixed inset-0 z-50 bg-[#141210] flex flex-col items-center justify-center text-white"
-        dir={dir}
-      >
-        <div className="text-center space-y-6 max-w-sm px-6">
-          <div className="relative inline-block">
-            <div className="absolute inset-0 bg-amber-500 blur-xl opacity-30 rounded-full animate-pulse" />
-            <div className="relative bg-white/10 p-5 rounded-2xl border border-white/20 animate-spin">
-              <Utensils className="h-10 w-10 text-ambient-glow" />
-            </div>
-          </div>
-          <div className="space-y-2 animate-pulse">
-            <h1 className="font-serif text-3xl font-bold tracking-widest text-[#ebd8bf]">
-              {t.welcomeLoader}
-            </h1>
-            <p className="font-sans text-xs uppercase tracking-widest text-[#a8a69e]">
-              {t.restaurantName} · Shashemene
-            </p>
-          </div>
-          <div className="w-16 h-1 bg-gradient-to-r from-transparent via-amber-500 to-transparent mx-auto rounded-full" />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div id="taqwa-app-root" className="min-h-screen flex flex-col font-sans text-[#1c1a17] bg-[#faf9f6]/40" dir={dir}>
-      
-      {/* Toast Notifier */}
-      {toastMessage && (
-        <div
-          id="toast-box"
-          className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-[#1c1a17] text-white px-6 py-4 rounded-2xl shadow-xl border border-amber-500/20 max-w-md animate-bounce transform translate-y-0"
-        >
-          <Sparkles className="h-5 w-5 text-ambient-gold animate-spin-slow" />
-          <p className="text-sm font-semibold">{toastMessage}</p>
-        </div>
-      )}
+      <AnimatePresence mode="popLayout">
+        {(!splashFinished || loading || !appState) && (
+          <motion.div
+            key="splash-loader"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            id="splash-loader"
+            className="fixed inset-0 z-50 bg-[#141210] flex flex-col items-center justify-center text-white"
+            dir={dir}
+          >
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              className="text-center space-y-6 max-w-sm px-6"
+            >
+              <div className="relative inline-block">
+                <div className="absolute inset-0 bg-amber-500 blur-xl opacity-30 rounded-full animate-pulse" />
+                <div className="relative bg-white/10 p-5 rounded-2xl border border-white/20 animate-spin">
+                  <Utensils className="h-10 w-10 text-ambient-glow" />
+                </div>
+              </div>
+              <div className="space-y-2 animate-pulse">
+                <h1 className="font-serif text-3xl font-bold tracking-widest text-[#ebd8bf]">
+                  {t.welcomeLoader}
+                </h1>
+                <p className="font-sans text-xs uppercase tracking-widest text-[#a8a69e]">
+                  {t.restaurantName} · Shashemene
+                </p>
+              </div>
+              <div className="w-16 h-1 bg-gradient-to-r from-transparent via-amber-500 to-transparent mx-auto rounded-full" />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* Styled Top Header */}
-      <Header
-        currentTab={currentTab}
-        onTabChange={handleTabChange}
-        lang={lang}
-        onLangChange={setLang}
-      />
+      {/* Main content layer guarded by appState availability */}
+      {appState && (
+        <>
+          {/* Toast Notifier */}
+          {toastMessage && (
+            <div
+              id="toast-box"
+              className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-[#1c1a17] text-white px-6 py-4 rounded-2xl shadow-xl border border-amber-500/20 max-w-md animate-bounce transform translate-y-0"
+            >
+              <Sparkles className="h-5 w-5 text-ambient-gold animate-spin-slow" />
+              <p className="text-sm font-semibold">{toastMessage}</p>
+            </div>
+          )}
+
+          {/* Styled Top Header */}
+          <Header
+            currentTab={currentTab}
+            onTabChange={handleTabChange}
+            lang={lang}
+            onLangChange={setLang}
+          />
 
       {/* Primary Routing Content Switcher */}
       <main className="flex-grow">
-        
-        {/* VIEW 1: HOME PAGE */}
-        {currentTab === "home" && (
-          <div id="view-home" className="space-y-24 pb-20">
+        <AnimatePresence mode="wait">
+          {/* VIEW 1: HOME PAGE */}
+          {currentTab === "home" && (
+            <motion.div
+              key="view-home"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              id="view-home"
+              className="space-y-24 pb-20"
+            >
             {/* Immersive Fading Hero Section */}
             <Hero
               hero={appState.hero}
@@ -956,13 +975,21 @@ export default function App() {
                 </div>
               </div>
             </section>
-          </div>
+          </motion.div>
         )}
 
 
         {/* VIEW 2: COMPACT MENU PAGE */}
         {currentTab === "menu" && (
-          <div id="view-menu" className="pt-32 pb-24 space-y-12">
+          <motion.div
+            key="view-menu"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            id="view-menu"
+            className="pt-32 pb-24 space-y-12"
+          >
             
             {/* Header Text */}
             <div className="max-w-3xl mx-auto text-center px-4 space-y-4">
@@ -1098,13 +1125,21 @@ export default function App() {
                 </div>
               )}
             </div>
-          </div>
+          </motion.div>
         )}
 
 
         {/* VIEW 3: SEPARATED SECURE ADMIN DASHBOARD */}
         {currentTab === "admin" && (
-          <div id="view-admin" className="pt-32 pb-24">
+          <motion.div
+            key="view-admin"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            id="view-admin"
+            className="pt-32 pb-24"
+          >
             {!isAdminUnlocked ? (
               <div className="max-w-md mx-auto px-4 mt-12">
                 <form
@@ -1642,8 +1677,9 @@ export default function App() {
 
               </div>
             )}
-          </div>
+          </motion.div>
         )}
+      </AnimatePresence>
 
       </main>
 
@@ -1909,6 +1945,8 @@ export default function App() {
 
       {/* Styled Modern Footer */}
       <Footer restaurant={appState.restaurant} lang={lang} onTabChange={handleTabChange} />
+        </>
+      )}
     </div>
   );
 }

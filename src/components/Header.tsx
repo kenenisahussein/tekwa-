@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { Globe, Utensils, Menu, X, ChevronDown, Check } from "lucide-react";
 import { translations, Language } from "../utils/translations";
 
@@ -129,32 +130,40 @@ export default function Header({ currentTab, onTabChange, lang, onLangChange }: 
                 <ChevronDown className="h-3 w-3" />
               </button>
 
-              {langDropdownOpen && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setLangDropdownOpen(false)} />
-                  <div className={`absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl z-20 overflow-hidden ${
-                    lang === "ar" ? "left-0 right-auto" : "right-0"
-                  }`}>
-                    <div className="py-1">
-                      {languages.map((l) => (
-                        <button
-                          key={l.code}
-                          onClick={() => {
-                            onLangChange(l.code);
-                            setLangDropdownOpen(false);
-                          }}
-                          className={`w-full px-4 py-2.5 text-xs text-left cursor-pointer transition-colors duration-200 flex items-center justify-between font-medium ${
-                            lang === l.code ? "bg-primary-50 text-primary-700 font-bold" : "text-gray-700 hover:bg-gray-100"
-                          } ${lang === "ar" ? "text-right" : "text-left"}`}
-                        >
-                          <span>{l.local}</span>
-                          {lang === l.code && <Check className="h-3.5 w-3.5" />}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
+              <AnimatePresence>
+                {langDropdownOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setLangDropdownOpen(false)} />
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95, y: -8 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: -8 }}
+                      transition={{ duration: 0.2, ease: "easeOut" }}
+                      className={`absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-2xl shadow-xl z-20 overflow-hidden ${
+                        lang === "ar" ? "left-0 right-auto" : "right-0"
+                      }`}
+                    >
+                      <div className="py-1">
+                        {languages.map((l) => (
+                          <button
+                            key={l.code}
+                            onClick={() => {
+                              onLangChange(l.code);
+                              setLangDropdownOpen(false);
+                            }}
+                            className={`w-full px-4 py-2.5 text-xs text-left cursor-pointer transition-colors duration-200 flex items-center justify-between font-medium ${
+                              lang === l.code ? "bg-primary-50 text-primary-700 font-bold" : "text-gray-700 hover:bg-gray-100"
+                            } ${lang === "ar" ? "text-right" : "text-left"}`}
+                          >
+                            <span>{l.local}</span>
+                            {lang === l.code && <Check className="h-3.5 w-3.5" />}
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
             </div>
           </nav>
 
@@ -195,60 +204,70 @@ export default function Header({ currentTab, onTabChange, lang, onLangChange }: 
       </div>
 
       {/* Mobile Drawer Overlay */}
-      {mobileMenuOpen && (
-        <div id="mobile-drawer" className="md:hidden fixed inset-0 top-[60px] bg-black/60 backdrop-blur-md z-40">
-          <div className={`bg-[#faf9f6]/95 backdrop-blur-md w-full shadow-2xl p-6 border-b-2 border-primary-600 transition-transform ${
-            lang === "ar" ? "text-right" : "text-left"
-          }`}>
-            <div className="flex flex-col space-y-3">
-              {publicNavItems.map((item) => {
-                const isActive = currentTab === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    id={`mobile-nav-${item.id}-btn`}
-                    onClick={() => {
-                      onTabChange(item.id);
-                      setMobileMenuOpen(false);
-                    }}
-                    className={`w-full py-4 px-4 rounded-xl text-md font-bold transition-all ${
-                      isActive
-                        ? "bg-primary-950 text-amber-300 font-extrabold"
-                        : "text-primary-950 hover:bg-[#f1f0ea]"
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                );
-              })}
-            </div>
-            
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <span className="block text-xs font-semibold text-gray-400 mb-3">Languages</span>
-              <div className="grid grid-cols-2 gap-2">
-                {languages.map((l) => (
-                  <button
-                    key={l.code}
-                    onClick={() => {
-                      onLangChange(l.code);
-                      setMobileMenuOpen(false);
-                    }}
-                    className={`py-2 px-3 text-xs rounded-lg text-center font-bold ${
-                      lang === l.code ? "bg-primary-700 text-white" : "bg-gray-100 hover:bg-gray-200"
-                    }`}
-                  >
-                    {l.local}
-                  </button>
-                ))}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            key="mobile-drawer"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            id="mobile-drawer"
+            className="md:hidden fixed inset-0 top-[60px] bg-black/60 backdrop-blur-md z-40"
+          >
+            <div className={`bg-[#faf9f6]/95 backdrop-blur-md w-full shadow-2xl p-6 border-b-2 border-primary-600 transition-transform ${
+              lang === "ar" ? "text-right" : "text-left"
+            }`}>
+              <div className="flex flex-col space-y-3">
+                {publicNavItems.map((item) => {
+                  const isActive = currentTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      id={`mobile-nav-${item.id}-btn`}
+                      onClick={() => {
+                        onTabChange(item.id);
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`w-full py-4 px-4 rounded-xl text-md font-bold transition-all ${
+                        isActive
+                          ? "bg-primary-950 text-amber-300 font-extrabold"
+                          : "text-primary-950 hover:bg-[#f1f0ea]"
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  );
+                })}
               </div>
-              <div className="flex justify-between items-center text-[10px] text-gray-400 mt-6">
-                <span>{t.tagline}</span>
-                <span>Taqwa © 2026</span>
+              
+              <div className="mt-8 pt-6 border-t border-gray-200">
+                <span className="block text-xs font-semibold text-gray-400 mb-3">Languages</span>
+                <div className="grid grid-cols-2 gap-2">
+                  {languages.map((l) => (
+                    <button
+                      key={l.code}
+                      onClick={() => {
+                        onLangChange(l.code);
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`py-2 px-3 text-xs rounded-lg text-center font-bold ${
+                        lang === l.code ? "bg-primary-700 text-white" : "bg-gray-100 hover:bg-gray-200"
+                      }`}
+                    >
+                      {l.local}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex justify-between items-center text-[10px] text-gray-400 mt-6">
+                  <span>{t.tagline}</span>
+                  <span>Taqwa © 2026</span>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 }
