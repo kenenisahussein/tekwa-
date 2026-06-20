@@ -223,9 +223,9 @@ export const defaultAppState: AppState = {
     subtitleOm: "Magaalaa bareeddii Shashamanee keessatti dhandhama nyaata addaa fi keessummeessaa mi'aawaa fidaa. Nyaatni keenya hunduu jaalalaان qophaaye.",
     subtitleAm: "በውቧ ሻሸመኔ ከተማ ውስጥ የምግብ አዘገጃጀት ጥበብንና ባህላዊ ጣዕምን ያጣጥሙ። እያንዳንዱ ምግብ በፍቅርና በጥንቃቄ የተዘጋጀ ነው።",
     images: [
-      "https://images.unsplash.com/photo-1542810634-71277d95dcbb?w=1600",
-      "https://images.unsplash.com/photo-1590075865003-e48277faa558?w=1600",
-      "https://images.unsplash.com/photo-1519817650390-64a93db51149?w=1600"
+      "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=1600&q=85",
+      "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=1600&q=85",
+      "https://images.unsplash.com/photo-1633945274405-b6c8069047b0?auto=format&fit=crop&w=1600&q=85"
     ]
   },
   restaurant: {

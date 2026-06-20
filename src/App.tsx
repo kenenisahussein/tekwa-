@@ -146,6 +146,19 @@ export default function App() {
     const unsubscribe = onSnapshot(doc(db, "restaurant_state", "taqwa"), async (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data() as AppState;
+        // Check and migrate old landscape hero images to stunning food photography
+        if (data.hero && data.hero.images && (data.hero.images[0]?.includes("photo-1542810634-71277d95dcbb") || data.hero.images.length === 0)) {
+          data.hero.images = [
+            "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=1600&q=85",
+            "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=1600&q=85",
+            "https://images.unsplash.com/photo-1633945274405-b6c8069047b0?auto=format&fit=crop&w=1600&q=85"
+          ];
+          try {
+            await setDoc(doc(db, "restaurant_state", "taqwa"), data);
+          } catch (e) {
+            console.warn("Firestore hero auto-upgrade silent ignore:", e);
+          }
+        }
         setAppState(data);
         localStorage.setItem("taqwa_custom_state", JSON.stringify(data));
         setLoading(false);
@@ -164,23 +177,14 @@ export default function App() {
       fetchStateFromServer();
     });
 
-    // Secure Admin Entrance: Check multiple entries for solid routing on static Vercel hosts
+    // Secure Admin Entrance: Restricted strictly to pathname matches /taqwa/admin and /teqwa/admin
     const path = window.location.pathname.toLowerCase();
-    const hash = window.location.hash.toLowerCase();
-    const search = window.location.search.toLowerCase();
-    
-    const isAdminUrl = 
-      path === "/taqwa/admin" || 
-      path === "/teqwa/admin" || 
-      path.endsWith("/admin") ||
-      hash === "#/admin" || 
-      hash === "#admin" || 
-      hash === "#/taqwa/admin" || 
-      hash === "#/teqwa/admin" ||
-      search.includes("admin");
+    const isAdminUrl = path === "/taqwa/admin" || path === "/teqwa/admin";
 
     if (isAdminUrl) {
       setCurrentTab("admin");
+    } else {
+      setCurrentTab("home");
     }
 
     // Trigger splash screen sequence
@@ -200,25 +204,15 @@ export default function App() {
   const handleTabChange = (tab: "home" | "menu" | "admin") => {
     if (tab === "admin") {
       const path = window.location.pathname.toLowerCase();
-      const hash = window.location.hash.toLowerCase();
-      const search = window.location.search.toLowerCase();
-      
-      const isAdminUrl = 
-        path === "/taqwa/admin" || 
-        path === "/teqwa/admin" || 
-        path.endsWith("/admin") ||
-        hash === "#/admin" || 
-        hash === "#admin" || 
-        hash === "#/taqwa/admin" || 
-        hash === "#/teqwa/admin" ||
-        search.includes("admin");
-
+      const isAdminUrl = path === "/taqwa/admin" || path === "/teqwa/admin";
       if (!isAdminUrl) {
-        // block silent access to admin
-        return;
+        window.history.pushState({}, "", "/taqwa/admin");
       }
+      setCurrentTab("admin");
+    } else {
+      window.history.pushState({}, "", "/");
+      setCurrentTab(tab);
     }
-    setCurrentTab(tab);
   };
 
   // Toast helper
@@ -296,12 +290,23 @@ export default function App() {
     return appState.products.filter((p) => p.isFeatured && p.isAvailable);
   }, [appState]);
 
-  // Unlock Admin dashboard
+  // Crytographical helper for SHA-256 hashing
+  const computeSha256 = async (message: string): Promise<string> => {
+    const msgBuffer = new TextEncoder().encode(message);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  };
+
+  // Unlock Admin dashboard securely with SHA-256 hash checking
   const handleUnlockAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Direct robust client-side validation as standard feature to support 100% static hosts (Vercel)
-    if (adminPasscode === "abbas9520" || adminPasscode.trim() === "abbas9520") {
+    const TARGET_HASH_KEY = "bd94055f3c7cec2d17d00912f6868089fe459a91c718fc3f97b70642850743fe";
+    const cleanedInput = adminPasscode.trim();
+    const hash = await computeSha256(cleanedInput);
+    
+    if (hash === TARGET_HASH_KEY) {
       setIsAdminUnlocked(true);
       setPasscodeError("");
       showToast(lang === "en" ? "Welcome to Taqwa Sanctuary Panel" : "مرحباً بك في لوحة تحكم تقوى");
@@ -322,7 +327,7 @@ export default function App() {
         setPasscodeError(t.invalidPasscode);
       }
     } catch (err) {
-      if (adminPasscode === "abbas9520") {
+      if (hash === TARGET_HASH_KEY) {
         setIsAdminUnlocked(true);
         setPasscodeError("");
         showToast(lang === "en" ? "Welcome to Taqwa Sanctuary Panel" : "مرحباً بك في لوحة تحكم تقوى");
@@ -769,24 +774,35 @@ export default function App() {
                   <div className="h-1 w-24 bg-primary-700 mx-auto rounded-full" />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {featuredProducts.map((p) => (
-                    <div
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" style={{ perspective: 1200 }}>
+                  {featuredProducts.map((p, idx) => (
+                    <motion.div
                       key={p.id}
-                      className="group bg-white rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 border border-[#e5e7eb] flex flex-col hover:-translate-y-1"
+                      initial={{ opacity: 0, y: 30 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, delay: idx * 0.08 }}
+                      whileHover={{ 
+                        scale: 1.03, 
+                        y: -10, 
+                        rotateY: -3,
+                        rotateX: 2,
+                        boxShadow: "0 25px 60px -15px rgba(217, 119, 6, 0.22)"
+                      }}
+                      className="group bg-white rounded-3xl overflow-hidden shadow-lg border border-[#e3dfd6] hover:border-amber-500/20 transition-all duration-500 flex flex-col"
                     >
                       <div className="relative h-64 overflow-hidden">
                         <img
                           src={p.image}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                           alt={getProductName(p)}
+                          referrerPolicy="no-referrer"
                         />
                         <div className="absolute top-4 right-4 bg-ambient-gold text-primary-950 font-bold px-3.5 py-1.5 rounded-full text-xs shadow-md">
                           ETB {p.price}
                         </div>
                       </div>
                       <div className="p-6 flex flex-col flex-grow text-center space-y-3">
-                        <h4 className="font-serif text-xl font-bold text-primary-950">
+                        <h4 className="font-serif text-xl font-bold text-primary-950 group-hover:text-amber-500 transition-colors">
                           {getProductName(p)}
                         </h4>
                         <p className="text-gray-500 text-sm line-clamp-3 leading-relaxed">
@@ -806,7 +822,7 @@ export default function App() {
                           </button>
                         </div>
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
 
@@ -1070,18 +1086,29 @@ export default function App() {
                   <p className="text-[#1c1a17] font-serif text-lg font-bold">{t.noProductsFound}</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {filteredProducts.map((p) => (
-                    <div
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" style={{ perspective: 1200 }}>
+                  {filteredProducts.map((p, idx) => (
+                    <motion.div
                       key={p.id}
-                      className="group bg-white rounded-3xl overflow-hidden border border-[#e5e7eb] shadow-lg hover:shadow-2xl hover:border-amber-500/10 transition-all duration-300 flex flex-col hover:-translate-y-1"
+                      initial={{ opacity: 0, y: 30 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, delay: idx * 0.05 }}
+                      whileHover={{ 
+                        scale: 1.03, 
+                        y: -10, 
+                        rotateY: -3,
+                        rotateX: 2,
+                        boxShadow: "0 25px 60px -15px rgba(217, 119, 6, 0.22)"
+                      }}
+                      className="group bg-white rounded-3xl overflow-hidden border border-[#e3dfd6] hover:border-amber-500/20 transition-all duration-500 flex flex-col"
                     >
                       {/* Image section */}
                       <div className="relative h-64 overflow-hidden">
                         <img
                           src={p.image}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                           alt={getProductName(p)}
+                          referrerPolicy="no-referrer"
                         />
                         {!p.isAvailable && (
                           <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center">
@@ -1103,7 +1130,7 @@ export default function App() {
 
                       {/* Details */}
                       <div className="p-6 flex flex-col flex-grow text-center space-y-3">
-                        <h3 className="font-serif text-xl font-bold text-primary-950">
+                        <h3 className="font-serif text-xl font-bold text-primary-950 group-hover:text-amber-500 transition-colors">
                           {getProductName(p)}
                         </h3>
                         <p className="text-gray-500 text-sm h-14 overflow-hidden text-ellipsis line-clamp-3 leading-relaxed">
@@ -1120,7 +1147,7 @@ export default function App() {
                           </span>
                         </div>
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
               )}

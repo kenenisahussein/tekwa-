@@ -1,6 +1,7 @@
 import express from "express";
 import path from "path";
 import fs from "fs";
+import crypto from "crypto";
 import { createServer as createViteServer } from "vite";
 import { AppState, Product, Category, HeroConfig, RestaurantConfig } from "./src/types";
 
@@ -175,9 +176,9 @@ const defaultState: AppState = {
     subtitleOm: "Magaalaa bareeddii Shashamanee keessatti dhandhama nyaata addaa fi keessummeessaa mi'aawaa fidaa. Nyaatni keenya hunduu jaalalaan qophaaye.",
     subtitleAm: "በውቧ ሻሸመኔ ከተማ ውስጥ የምግብ አዘገጃጀት ጥበብንና ባህላዊ ጣዕምን ያጣጥሙ። እያንዳንዱ ምግብ በፍቅርና በጥንቃቄ የተዘጋጀ ነው።",
     images: [
-      "https://images.unsplash.com/photo-1542810634-71277d95dcbb?w=1600",
-      "https://images.unsplash.com/photo-1590075865003-e48277faa558?w=1600",
-      "https://images.unsplash.com/photo-1519817650390-64a93db51149?w=1600"
+      "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=1600&q=85",
+      "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=1600&q=85",
+      "https://images.unsplash.com/photo-1633945274405-b6c8069047b0?auto=format&fit=crop&w=1600&q=85"
     ]
   },
   restaurant: {
@@ -370,11 +371,16 @@ async function start() {
   app.use(customLogger);
   app.use(rateLimiter);
 
-  // Authenticate Admin Passcode strictly
+  // Authenticate Admin Passcode strictly using SHA-256
+  const ADMIN_HASH_KEY = "bd94055f3c7cec2d17d00912f6868089fe459a91c718fc3f97b70642850743fe";
+
   const verifyAdmin = (req: express.Request, res: express.Response, next: express.NextFunction) => {
     const passcode = req.headers["x-admin-passcode"] || req.query.passcode;
-    if (passcode === "abbas9520") {
-      return next();
+    if (typeof passcode === "string") {
+      const hash = crypto.createHash("sha256").update(passcode.trim()).digest("hex");
+      if (hash === ADMIN_HASH_KEY) {
+        return next();
+      }
     }
     console.warn(`[UNAUTHORIZED ACCESS] Attempt to update data without valid passcode from ${req.ip}`);
     return res.status(403).json({ error: "Access denied. Invalid signature passcode credentials." });
@@ -383,8 +389,11 @@ async function start() {
   // API 0: Verify Administrative Passcode (Server-Verified)
   app.post("/api/admin/verify", (req, res) => {
     const { passcode } = req.body;
-    if (passcode === "abbas9520") {
-      return res.status(200).json({ success: true, message: "Valid passcode" });
+    if (typeof passcode === "string") {
+      const hash = crypto.createHash("sha256").update(passcode.trim()).digest("hex");
+      if (hash === ADMIN_HASH_KEY) {
+        return res.status(200).json({ success: true, message: "Valid passcode" });
+      }
     }
     return res.status(401).json({ success: false, error: "Invalid administrative credentials" });
   });
